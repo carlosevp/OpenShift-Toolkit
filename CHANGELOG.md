@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 - 2026-09-04
+
+- `Connect-OcpCluster -Web` for `oc login <server> --web` (interactive browser / OAuth)
+- Authentication no longer fails when `oc version` omits `openshiftVersion`
+
 ## 0.2.0 - 2026-09-04
 
 - Friendly cluster names, aliases, and canonical IDs with case-insensitive resolution

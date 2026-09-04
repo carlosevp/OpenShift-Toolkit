@@ -1,6 +1,6 @@
 @{
     RootModule        = 'OpenShiftOps.psm1'
-    ModuleVersion     = '0.2.0'
+    ModuleVersion     = '0.2.1'
     GUID              = '7c2e8a91-4d3f-4b6a-9e1c-2f8a0d6b5c47'
     Author            = 'Platform Operations'
     CompanyName       = 'Internal'
@@ -39,7 +39,7 @@
             Tags         = @('OpenShift', 'Kubernetes', 'Operations', 'Safety', 'AzureDevOps')
             LicenseUri   = ''
             ProjectUri   = ''
-            ReleaseNotes = 'Friendly cluster names, Connect-OcpCluster token/API/bearer authentication, isolated kubeconfig for token sessions.'
+            ReleaseNotes = 'Connect-OcpCluster -Web (oc login --web) and tolerant oc version parsing when openshiftVersion is absent.'
         }
     }
 }

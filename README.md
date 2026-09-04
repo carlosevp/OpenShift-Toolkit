@@ -83,6 +83,9 @@ To point at a different config directory: `$env:OPENSHIFTOPS_CONFIG_ROOT = '/pat
 ```powershell
 Get-OcpClusterInfo
 
+# Browser / OAuth (oc login --web)
+Connect-OcpCluster -Cluster Akron-Prod -Web
+
 # Existing oc login — validates the current server against the catalog
 Connect-OcpCluster -Cluster Akron-Prod
 
@@ -133,6 +136,8 @@ Friendly names such as `Akron-Prod` are lookup aliases for configured canonical 
 
 ```powershell
 Get-OcpClusterInfo
+
+Connect-OcpCluster -Cluster Akron-Prod -Web
 
 Connect-OcpCluster -Cluster Akron-Prod
 

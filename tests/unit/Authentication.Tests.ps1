@@ -106,6 +106,62 @@ Describe 'Connect-OcpCluster authentication' {
             { Connect-OcpCluster -Cluster Akron-Prod -Token $secure -TokenEnvironmentVariable OCP_TOKEN } | Should -Throw
         }
 
+        It 'authenticates with oc login --web against the configured server' {
+            $result = Connect-OcpCluster -Cluster Akron-Prod -Web
+            $result.AuthenticationMethod | Should -Be 'Web'
+            $result.FriendlyName | Should -Be 'Akron-Prod'
+            $result.Authenticated | Should -BeTrue
+            Should -Invoke Invoke-OcpCli -Times 1 -ParameterFilter {
+                $ArgumentList[0] -eq 'login' -and $ArgumentList[1] -eq 'https://api.ocp-akron-prod.example.com:6443' -and $ArgumentList[2] -eq '--web'
+            }
+        }
+
+        It 'rejects combining -Web and -Token' {
+            $secure = ConvertTo-SecureString 'unit-test-token-value' -AsPlainText -Force
+            { Connect-OcpCluster -Cluster Akron-Prod -Web -Token $secure } | Should -Throw
+        }
+
+        It 'refuses web login in Azure DevOps' {
+            $previous = $env:TF_BUILD
+            $env:TF_BUILD = 'True'
+            try {
+                { Connect-OcpCluster -Cluster Akron-Prod -Web } | Should -Throw
+                Should -Invoke Invoke-OcpCli -Times 0 -ParameterFilter { ($ArgumentList -join ' ') -like 'login *--web' }
+            }
+            finally {
+                if ($null -eq $previous) { Remove-Item Env:TF_BUILD -ErrorAction SilentlyContinue }
+                else { $env:TF_BUILD = $previous }
+            }
+        }
+
+        It 'continues when oc version JSON omits openshiftVersion' {
+            Mock Invoke-OcpCli {
+                param($ArgumentList)
+                $joined = $ArgumentList -join ' '
+                if ($joined -eq 'whoami --show-server') {
+                    return New-CliResult -StandardOutput 'https://api.ocp-akron-prod.example.com:6443'
+                }
+                if ($joined -eq 'whoami') {
+                    return New-CliResult -StandardOutput 'cvp@example.com'
+                }
+                if ($joined -eq 'version -o json') {
+                    return New-CliResult -Json ([pscustomobject]@{
+                        clientVersion = [pscustomobject]@{ gitVersion = 'v4.17.0' }
+                    }) -StandardOutput '{}'
+                }
+                if ($joined -like 'auth can-i *') {
+                    return New-CliResult -StandardOutput 'yes'
+                }
+                throw "Unexpected oc invocation: $joined"
+            }
+
+            $result = Connect-OcpCluster -Cluster Akron-Prod
+            $result.Authenticated | Should -BeTrue
+            $result.Username | Should -Be 'cvp@example.com'
+            $result.ClientVersion | Should -Be 'v4.17.0'
+            $result.OpenShiftVersion | Should -Be ''
+        }
+
         It 'redacts the token from login exceptions' {
             Mock Invoke-OcpCli {
                 param($ArgumentList)

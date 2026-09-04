@@ -38,6 +38,10 @@ Do not use `-Force`.
 
 `Connect-OcpCluster` supports Token authentication. Prefer a `SecureString` locally and an Azure DevOps **secret** variable for automation. Tokens are read internally, passed to `oc` as an argument array, and redacted as `--token=***REDACTED***` in logs. Service account identities such as `system:serviceaccount:<namespace>:<sa>` are valid; permissions are still checked with `oc auth can-i`.
 
+## Web / browser login
+
+`Connect-OcpCluster -Web` runs `oc login <server> --web` against the configured catalog URL. It is interactive only. The module inherits the console so the operator can see the OAuth URL. Web login writes to the current kubeconfig; it does not isolate or delete the operator's kubeconfig. Do not use `-Web` in Azure DevOps.
+
 Do not put tokens in `config/`, pipeline YAML, or example scripts.
 
 ## Remaining risks

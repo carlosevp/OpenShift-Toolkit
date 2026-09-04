@@ -33,8 +33,14 @@ function Invoke-OcpCli {
 
         [int]$TimeoutSeconds = 180,
 
-        [switch]$AllowNonZeroExit
+        [switch]$AllowNonZeroExit,
+
+        [switch]$Interactive
     )
+
+    if ($Interactive -and $Json) {
+        throw [OcpValidationException]::new('Invoke-OcpCli cannot combine -Interactive with -Json.')
+    }
 
     $ocPath = Get-OcpCliPath
     $safeArgs = Protect-OcpArgumentList -ArgumentList $ArgumentList
@@ -43,11 +49,13 @@ function Invoke-OcpCli {
     $psi = [System.Diagnostics.ProcessStartInfo]::new()
     $psi.FileName = $ocPath
     $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-    $psi.CreateNoWindow = $true
-    $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
-    $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8
+    $psi.CreateNoWindow = -not $Interactive
+    $psi.RedirectStandardOutput = -not $Interactive
+    $psi.RedirectStandardError = -not $Interactive
+    if (-not $Interactive) {
+        $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+        $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8
+    }
 
     foreach ($argument in $ArgumentList) {
         [void]$psi.ArgumentList.Add($argument)
@@ -61,8 +69,12 @@ function Invoke-OcpCli {
             throw [OcpCliException]::new('Failed to start oc process.', -1, '', $safeArgs)
         }
 
-        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
-        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $stdoutTask = $null
+        $stderrTask = $null
+        if (-not $Interactive) {
+            $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+            $stderrTask = $process.StandardError.ReadToEndAsync()
+        }
 
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
             try {
@@ -74,8 +86,14 @@ function Invoke-OcpCli {
             throw [OcpTimeoutException]::new("oc timed out after $TimeoutSeconds seconds: $($safeArgs -join ' ')")
         }
 
-        $stdout = $stdoutTask.GetAwaiter().GetResult()
-        $stderr = $stderrTask.GetAwaiter().GetResult()
+        $stdout = ''
+        $stderr = ''
+        if ($stdoutTask) {
+            $stdout = $stdoutTask.GetAwaiter().GetResult()
+        }
+        if ($stderrTask) {
+            $stderr = $stderrTask.GetAwaiter().GetResult()
+        }
         $exitCode = $process.ExitCode
     }
     finally {

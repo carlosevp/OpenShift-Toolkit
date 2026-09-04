@@ -4,7 +4,7 @@
 Import-Module "$PSScriptRoot/../src/OpenShiftOps/OpenShiftOps.psd1"
 
 Get-OcpClusterInfo
-Connect-OcpCluster -Cluster Akron-NonProd
+Connect-OcpCluster -Cluster Akron-NonProd -Web
 Get-OcpContext
 Get-OcpClusterInfo
 Get-OcpProject | Sort-Object AgeDays | Select-Object -First 20

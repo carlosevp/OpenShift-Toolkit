@@ -7,22 +7,28 @@ function Connect-OcpCluster {
         record, then authenticates using one of:
 
         - ExistingContext: validate the current oc login against the selected cluster
+        - Web: oc login <server> --web (browser / OAuth)
         - Token / API Token / Bearer Token: oc login --token (SecureString)
         - TokenEnvironmentVariable: read a named environment variable internally
 
         Token values are never logged, returned, audited, or written to artifacts.
         Token authentication uses an isolated temporary kubeconfig so the operator's
-        default kubeconfig is not replaced.
+        default kubeconfig is not replaced. Web login updates the current kubeconfig
+        (the same file oc login --web would use).
 
         Friendly names are lookup conveniences only. Mutations still require the
         authenticated API server to match the configured server URL.
     .PARAMETER Cluster
         Friendly name, alias, or canonical ID. Defaults to $env:OCP_CLUSTER when set.
+    .PARAMETER Web
+        Open a browser for OpenShift OAuth login (oc login --web). Interactive only.
     .PARAMETER Token
         OpenShift API / bearer token as a SecureString. Do not pass a plain string.
     .PARAMETER TokenEnvironmentVariable
         Name of an environment variable that contains the API / bearer token.
         The value is read internally and never returned.
+    .EXAMPLE
+        Connect-OcpCluster -Cluster Akron-NonProd -Web
     .EXAMPLE
         Connect-OcpCluster -Cluster Akron-Prod
     .EXAMPLE
@@ -36,9 +42,13 @@ function Connect-OcpCluster {
     [CmdletBinding(DefaultParameterSetName = 'ExistingContext')]
     param(
         [Parameter(ParameterSetName = 'ExistingContext')]
+        [Parameter(ParameterSetName = 'Web')]
         [Parameter(ParameterSetName = 'Token')]
         [Parameter(ParameterSetName = 'TokenEnvironmentVariable')]
         [string]$Cluster = $env:OCP_CLUSTER,
+
+        [Parameter(ParameterSetName = 'Web', Mandatory = $true)]
+        [switch]$Web,
 
         [Parameter(ParameterSetName = 'Token', Mandatory = $true)]
         [SecureString]$Token,
@@ -55,6 +65,7 @@ function Connect-OcpCluster {
 
     $target = Resolve-OcpCluster -Cluster $Cluster
     $method = switch ($PSCmdlet.ParameterSetName) {
+        'Web' { 'Web' }
         'Token' { 'Token' }
         'TokenEnvironmentVariable' { 'Token' }
         default { 'ExistingContext' }
@@ -62,7 +73,10 @@ function Connect-OcpCluster {
 
     $plainToken = $null
     try {
-        if ($PSCmdlet.ParameterSetName -eq 'Token') {
+        if ($PSCmdlet.ParameterSetName -eq 'Web') {
+            Invoke-OcpWebLogin -Cluster $target
+        }
+        elseif ($PSCmdlet.ParameterSetName -eq 'Token') {
             $plainToken = ConvertFrom-OcpSecureString -SecureString $Token
             if ([string]::IsNullOrWhiteSpace($plainToken)) {
                 throw [OcpAuthenticationException]::new('The supplied API / bearer token is empty.')
@@ -143,14 +157,47 @@ Classification: $($context.Classification)
     }
 }
 
+function Invoke-OcpWebLogin {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        $Cluster
+    )
+
+    if ((Get-OcpExecutionMode) -eq 'AzureDevOps') {
+        throw [OcpAuthenticationException]::new(
+            'Web / browser login is interactive and is not supported in Azure DevOps. Use a mapped service connection or Connect-OcpCluster -TokenEnvironmentVariable OCP_TOKEN.'
+        )
+    }
+
+    Write-Information -MessageData @"
+Opening a browser for OpenShift web login.
+
+Cluster: $($Cluster.FriendlyName)
+Server:  $($Cluster.Server)
+
+Complete the login in the browser, then return here.
+"@ -InformationAction Continue
+
+    try {
+        Invoke-OcpCli -ArgumentList @('login', $Cluster.Server, '--web') -Interactive -TimeoutSeconds 600 | Out-Null
+    }
+    catch {
+        $safe = Protect-OcpSensitiveValue -Text $_.Exception.Message
+        throw [OcpAuthenticationException]::new(
+            "Web login to $($Cluster.FriendlyName) failed. Use 'oc login $($Cluster.Server) --web' if the browser did not open. $safe"
+        )
+    }
+}
+
 function Disconnect-OcpCluster {
     <#
     .SYNOPSIS
         Clears an OpenShiftOps token session and restores the previous kubeconfig.
     .DESCRIPTION
         Removes an isolated temporary kubeconfig created by token authentication.
-        Never deletes the operator's existing kubeconfig. ExistingContext sessions
-        are cleared without changing KUBECONFIG.
+        Never deletes the operator's existing kubeconfig. ExistingContext and Web
+        sessions are cleared without changing KUBECONFIG.
     #>
     [CmdletBinding()]
     param()

@@ -6,7 +6,8 @@ OpenShiftOps is a PowerShell 7 module plus configuration and Azure DevOps YAML. 
 
 | Path | Authentication | Privilege |
 | --- | --- | --- |
-| Local existing context | `Connect-OcpCluster -Cluster <friendlyName>` after `oc login` | Whatever the operator already has |
+| Local existing context | `Connect-OcpCluster -Cluster <friendlyName>` after `oc login` / `oc login --web` | Whatever the operator already has |
+| Local web / browser OAuth | `Connect-OcpCluster -Cluster <friendlyName> -Web` (`oc login <server> --web`) | Whatever the browser identity can do |
 | Local token / API token / bearer token | `Connect-OcpCluster -Token` or `-TokenEnvironmentVariable` (isolated kubeconfig) | Whatever the token's account can do |
 | Azure DevOps (preferred) | Mapped Kubernetes service connection for the selected friendly cluster | read / maintenance / destructive |
 | Azure DevOps token escape hatch | Secret variable `OCP_TOKEN` + `Connect-OcpCluster -TokenEnvironmentVariable` | Whatever the token's account can do |
@@ -30,14 +31,17 @@ Friendly names are never treated as proof of which cluster is live.
 | Call | Behavior |
 | --- | --- |
 | `Connect-OcpCluster -Cluster Akron-Prod` | Do not log in again. Validate the current oc context. |
+| `Connect-OcpCluster -Cluster Akron-NonProd -Web` | `oc login <configured-server> --web`. Complete OAuth in the browser, then validate the server. |
 | `Connect-OcpCluster -Cluster Akron-Prod -Token $secure` | `oc login <server> --token` against an isolated kubeconfig, then validate the server. |
 | `Connect-OcpCluster -Cluster Pitt-DR -TokenEnvironmentVariable OCP_TOKEN` | Read that variable internally, login, validate. |
 
-`-Token` and `-TokenEnvironmentVariable` cannot be combined. `OCP_TOKEN` is ignored unless that parameter is passed.
+`-Web`, `-Token`, and `-TokenEnvironmentVariable` cannot be combined. `OCP_TOKEN` is ignored unless that parameter is passed. `-Web` is refused in Azure DevOps.
 
 ## Temporary kubeconfig
 
 Token authentication sets `KUBECONFIG` to a unique file under the process temp directory (`openshiftops-<guid>/kubeconfig`), with restrictive permissions on Unix. The previous `KUBECONFIG` is restored on `Disconnect-OcpCluster`, failed login, or module unload. The operator's existing kubeconfig is never deleted.
+
+Web login (`-Web`) and ExistingContext use the current kubeconfig. They do not create or delete kubeconfig files.
 
 Azure DevOps service-connection login continues to use the agent kubeconfig produced by `Kubernetes@1`.
 

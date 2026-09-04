@@ -14,6 +14,26 @@ Configuration is validated immediately and fails closed. Typical causes:
 
 Install the OpenShift CLI or set `OPENSHIFTOPS_OC_PATH`. Azure DevOps agents must have `oc` after the Kubernetes login task.
 
+## You must be logged in (Unauthorized)
+
+`oc whoami` is not authenticated. Either:
+
+```powershell
+Connect-OcpCluster -Cluster Akron-NonProd -Web
+```
+
+or log in first (`oc login --web` / `oc login <server> --web`) and then:
+
+```powershell
+Connect-OcpCluster -Cluster Akron-NonProd
+```
+
+The second form validates the current context. It does not log in again.
+
+## `openshiftVersion` cannot be found
+
+`oc version -o json` does not always include `openshiftVersion`. Authentication now uses `oc whoami` and treats version fields as optional. Re-import the module (`Import-Module ... -Force`) if you still see this error from an older copy.
+
 ## Cluster identity mismatch
 
 The selected cluster's configured URL (normalized) does not match `oc whoami --show-server`. Friendly names are not identity. Log in to the intended cluster with `Connect-OcpCluster` or fix `config/clusters.yaml`. A command for `Akron-NonProd` will not run against `Akron-Prod`.
@@ -33,6 +53,10 @@ The live cluster changed (PVCs, running pods, protection, or identity). Generate
 ## Secret values in artifacts
 
 The publish step should fail the pipeline. Default export strips Secret data. Do not set `secretExport.enabled` to true; the module refuses that configuration.
+
+## Web login failed
+
+`-Web` runs `oc login <configured-server> --web` and waits for the browser. It is refused in Azure DevOps. If the browser does not open, copy the URL `oc` prints. Confirm `config/clusters.yaml` has the real API URL for that friendly name.
 
 ## Token login failed
 

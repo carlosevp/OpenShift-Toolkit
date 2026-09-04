@@ -56,6 +56,47 @@ Describe 'Protect-OcpSensitiveValue' {
     }
 }
 
+Describe 'Get-OcpVersionInfo' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot 'OpenShiftOps.Helpers.ps1')
+        Import-OpenShiftOpsForTest
+    }
+
+    InModuleScope OpenShiftOps {
+        It 'reads classic oc version JSON' {
+            $json = [pscustomobject]@{
+                openshiftVersion = '4.16.0'
+                serverVersion    = [pscustomobject]@{ gitVersion = 'v1.29.0' }
+                clientVersion    = [pscustomobject]@{ gitVersion = 'v1.29.0' }
+            }
+            $info = Get-OcpVersionInfo -Json $json
+            $info.OpenShiftVersion | Should -Be '4.16.0'
+            $info.KubernetesVersion | Should -Be 'v1.29.0'
+            $info.ClientVersion | Should -Be 'v1.29.0'
+        }
+
+        It 'does not throw when openshiftVersion and serverVersion are missing' {
+            $json = [pscustomobject]@{
+                clientVersion = [pscustomobject]@{ gitVersion = 'v4.17.0' }
+            }
+            $info = Get-OcpVersionInfo -Json $json
+            $info.OpenShiftVersion | Should -Be ''
+            $info.KubernetesVersion | Should -Be ''
+            $info.ClientVersion | Should -Be 'v4.17.0'
+        }
+
+        It 'accepts kubernetesVersion and releaseClientVersion fields' {
+            $json = [pscustomobject]@{
+                kubernetesVersion    = 'v1.31.0'
+                releaseClientVersion = '4.17.14'
+            }
+            $info = Get-OcpVersionInfo -Json $json
+            $info.KubernetesVersion | Should -Be 'v1.31.0'
+            $info.ClientVersion | Should -Be '4.17.14'
+        }
+    }
+}
+
 Describe 'YAML configuration loading' {
     BeforeAll {
         . (Join-Path $PSScriptRoot 'OpenShiftOps.Helpers.ps1')

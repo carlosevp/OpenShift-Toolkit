@@ -17,19 +17,24 @@ Import-Module ./src/OpenShiftOps/OpenShiftOps.psd1
 Get-OcpClusterInfo
 ```
 
-### Existing oc context
-
-```bash
-oc login --server https://api.ocp-akron-prod.example.com:6443
-```
+### Browser / web login
 
 ```powershell
+Connect-OcpCluster -Cluster Akron-NonProd -Web
+```
+
+This runs `oc login <configured-server> --web`, opens a browser for OAuth, then validates that the authenticated API server matches the catalog. It is interactive only and is refused in Azure DevOps.
+
+### Existing oc context
+
+```powershell
+oc login --web   # or: oc login https://api.example.com:6443 --web
 Connect-OcpCluster -Cluster Akron-Prod
 Get-OcpContext
 Get-OcpProject -Cluster Akron-Prod
 ```
 
-`Connect-OcpCluster -Cluster Akron-Prod` does **not** log in again. It validates that the current `oc` server matches Akron-Prod.
+`Connect-OcpCluster -Cluster Akron-Prod` without `-Web` or `-Token` does **not** log in again. It validates that the current `oc` server matches Akron-Prod. Missing fields in `oc version` output are ignored; `oc whoami` is the authentication check.
 
 ### API / bearer token
 
