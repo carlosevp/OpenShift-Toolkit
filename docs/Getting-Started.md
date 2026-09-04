@@ -3,9 +3,10 @@
 ## Local setup
 
 1. Install PowerShell 7+ and the OpenShift CLI.
-2. Edit `config/clusters.yaml` with real API URLs, friendly names, and aliases. Do not add credentials.
+2. Edit **`config/clusters.yaml`** with real API URLs, friendly names, and aliases. This is the catalog `Connect-OcpCluster` and `Get-OcpClusterInfo` read. Do not add credentials.
 3. Set `standards.labelDomain` in `config/project-standards.yaml` (replace `company.com`).
 4. Align protected-project label keys with that domain.
+5. Import the module (`Import-Module ./src/OpenShiftOps/OpenShiftOps.psd1`). After later catalog edits, use `-Force` so the new file is loaded.
 
 ## Connecting to a Cluster
 
@@ -50,7 +51,7 @@ Connect-OcpCluster -Cluster $env:OCP_CLUSTER -TokenEnvironmentVariable OCP_TOKEN
 
 Friendly names, aliases, and canonical IDs are case-insensitive. Unknown names fail. There is no fuzzy matching (`akron-prd` does not become `Akron-Prod`).
 
-5. Preview a mutation:
+## Preview a mutation
 
 ```powershell
 Repair-OcpProjectMetadata -Project claims-dev -Cluster Akron-NonProd -WhatIf

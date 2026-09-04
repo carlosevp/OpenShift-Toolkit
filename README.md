@@ -31,30 +31,80 @@ Engineer
 - PowerShell 7+
 - OpenShift CLI (`oc`) on PATH
 - An authenticated `oc` context, or an API / bearer token for `Connect-OcpCluster`
-- Cluster URLs, friendly names, and label domain configured under `config/`
 
-## Quick start
+## How to start
+
+There is no setup wizard after you import the module. Edit YAML, then import.
+
+### 1. Configure clusters
+
+Edit **[config/clusters.yaml](config/clusters.yaml)**. That file is the catalog of friendly names, aliases, API URLs, and Azure DevOps connection names.
+
+Replace the example `Akron-*` / `Pitt-*` entries with your real clusters. Do not put tokens, passwords, or kubeconfig data in this file.
+
+```yaml
+clusters:
+  ocp-akron-prod:                    # canonical ID (internal, lowercase)
+    friendlyName: Akron-Prod         # what operators type
+    aliases:
+      - akron-prod
+      - akr-prod
+    server: https://api.ocp-akron-prod.example.com:6443
+    classification: production       # nonprod or production
+    location: Akron
+    purpose: primary
+    azureDevOps:
+      serviceConnection: OCP-AKRON-PROD
+      destructiveServiceConnection: OCP-AKRON-PROD-DESTRUCTIVE
+```
+
+Also set `standards.labelDomain` in [config/project-standards.yaml](config/project-standards.yaml) (replace `company.com`).
+
+If you change friendly names used by pipelines, update `pipelines/cluster-map.yml`, `pipelines/templates/authenticate.yml`, and the Cluster values in `pipelines/openshift-ops.yml` to match. `pwsh -File ./tests/Invoke-OcpTests.ps1` will fail if those mappings drift.
+
+### 2. Import the module
 
 ```powershell
 Import-Module ./src/OpenShiftOps/OpenShiftOps.psd1
+```
 
+The module reads `config/` at import time and fails closed if the catalog is invalid (duplicate aliases, missing `friendlyName`, non-https server, and so on).
+
+After you edit `config/clusters.yaml`, re-import so the new catalog is loaded:
+
+```powershell
+Import-Module ./src/OpenShiftOps/OpenShiftOps.psd1 -Force
+```
+
+To point at a different config directory: `$env:OPENSHIFTOPS_CONFIG_ROOT = '/path/to/config'`.
+
+### 3. Confirm and connect
+
+```powershell
 Get-OcpClusterInfo
+
+# Existing oc login — validates the current server against the catalog
 Connect-OcpCluster -Cluster Akron-Prod
+
+# Or token / API token / bearer token
+$token = Read-Host 'OpenShift API token' -AsSecureString
+Connect-OcpCluster -Cluster Akron-Prod -Token $token
+```
+
+Then:
+
+```powershell
 Get-OcpContext
 Get-OcpProject -Cluster Akron-Prod
-
 Find-OcpUnusedProject
-
 Test-OcpProjectStandards -Project claims-dev
-
 Repair-OcpProjectMetadata -Project claims-dev -WhatIf
-
 Get-OcpProjectRemovalPlan -Name old-claims-dev
-
 Export-OcpProjectSafetySnapshot -Name old-claims-dev
-
 Remove-OcpProject -Name old-claims-dev -WhatIf
 ```
+
+More detail: [Getting started](docs/Getting-Started.md).
 
 ## What happens before a real project deletion
 
