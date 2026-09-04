@@ -49,7 +49,8 @@ clusters:
     aliases:
       - akron-prod
       - akr-prod
-    server: https://api.ocp-akron-prod.example.com:6443
+    server: https://api.ocp-akron-prod.example.com:6443   # API URL from: oc whoami --show-server
+    # not the web console (console-openshift-console.apps...)
     classification: production       # nonprod or production
     location: Akron
     purpose: primary

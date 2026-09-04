@@ -26,6 +26,23 @@ Describe 'ConvertTo-OcpNormalizedServer' {
     }
 }
 
+Describe 'Assert-OcpApiServerUrl' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot 'OpenShiftOps.Helpers.ps1')
+        Import-OpenShiftOpsForTest
+    }
+
+    InModuleScope OpenShiftOps {
+        It 'rejects an OpenShift web console URL' {
+            { Assert-OcpApiServerUrl -ClusterId 'ocp-akron-nonprod' -Server 'https://console-openshift-console.apps.mcluster.mydomain' } | Should -Throw
+        }
+
+        It 'accepts an API server URL' {
+            { Assert-OcpApiServerUrl -ClusterId 'ocp-akron-nonprod' -Server 'https://api.mcluster.mydomain:6443' } | Should -Not -Throw
+        }
+    }
+}
+
 Describe 'Protect-OcpSensitiveValue' {
     BeforeAll {
         . (Join-Path $PSScriptRoot 'OpenShiftOps.Helpers.ps1')

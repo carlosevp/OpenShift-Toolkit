@@ -5,7 +5,9 @@
 #   - a canonical ID (the YAML key)
 #   - a friendlyName for operators
 #   - aliases for lookup (case-insensitive)
-#   - the API server URL used for identity verification
+#   - the API server URL (oc whoami --show-server), NOT the web console
+#     Wrong: https://console-openshift-console.apps.cluster.example.com
+#     Right: https://api.cluster.example.com:6443
 #   - classification, optional location/purpose
 #   - Azure DevOps service connection names (not credentials)
 #

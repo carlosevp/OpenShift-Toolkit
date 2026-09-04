@@ -45,6 +45,36 @@ function ConvertTo-OcpNormalizedServer {
     }
 }
 
+function Assert-OcpApiServerUrl {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ClusterId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Server
+    )
+
+    $hostName = ([Uri]$Server).Host
+    if ($hostName -match '(?i)^console-openshift-console(\.|$)' -or $hostName -match '(?i)\.apps\.') {
+        throw [OcpConfigurationException]::new(
+            @"
+Cluster '$ClusterId' server '$Server' looks like an OpenShift web console or apps route, not the API server.
+
+oc and this module authenticate to the Kubernetes API, usually:
+
+  https://api.<cluster>.<domain>:6443
+
+Get the exact value after login:
+
+  oc whoami --show-server
+
+Put that URL in config/clusters.yaml. Do not use console-openshift-console.apps...
+"@.Trim()
+        )
+    }
+}
+
 function Test-OcpServerUrlMatch {
     [CmdletBinding()]
     param(

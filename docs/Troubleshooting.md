@@ -38,6 +38,21 @@ The second form validates the current context. It does not log in again.
 
 The selected cluster's configured URL (normalized) does not match `oc whoami --show-server`. Friendly names are not identity. Log in to the intended cluster with `Connect-OcpCluster` or fix `config/clusters.yaml`. A command for `Akron-NonProd` will not run against `Akron-Prod`.
 
+`server` must be the **API** URL, not the web console. After `oc login --web`:
+
+```powershell
+oc whoami --show-server
+```
+
+Put that exact value in `config/clusters.yaml`. Example:
+
+```text
+Wrong:  https://console-openshift-console.apps.mcluster.mydomain
+Right:  https://api.mcluster.mydomain:6443
+```
+
+A bare cluster FQDN is also wrong. Re-import the module after editing (`Import-Module ... -Force`).
+
 ## Deletion blocked on PVCs
 
 Expected. Exporting YAML does not back up volume data. Use an approved volume backup or, only if policy allows, `-AllowDeleteWithPersistentVolumes`.

@@ -150,6 +150,7 @@ function Assert-OcpConfigurationValid {
         if ($server -notmatch '^https://') {
             throw [OcpConfigurationException]::new("Cluster '$id' server must use https://. Fail closed.")
         }
+        Assert-OcpApiServerUrl -ClusterId $id -Server $server
         $classification = Normalize-OcpClassification -Value $cluster.classification
         if ($classification -notin $allowedClassifications) {
             throw [OcpConfigurationException]::new(
