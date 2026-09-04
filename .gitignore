@@ -1,0 +1,23 @@
+# Artifacts and local runtime output
+artifacts/
+logs/
+*.log
+TestResults/
+coverage/
+
+# Local operator overrides (may contain environment-specific paths; never credentials)
+config/local.clusters.yaml
+config/local.*.yaml
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+*.code-workspace
+
+# PowerShell
+*.bak
+*.tmp
+psscriptanalyzer-*.xml

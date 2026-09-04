@@ -1,0 +1,49 @@
+parameters:
+  - name: cluster
+    type: string
+  - name: operation
+    type: string
+  - name: project
+    type: string
+    default: ''
+  - name: environment
+    type: string
+    default: ''
+  - name: application
+    type: string
+    default: ''
+  - name: owner
+    type: string
+    default: ''
+  - name: costCenter
+    type: string
+    default: ''
+  - name: changeReference
+    type: string
+    default: ''
+  - name: allowDeleteWithPersistentVolumes
+    type: boolean
+    default: false
+  - name: artifactRoot
+    type: string
+
+steps:
+  - task: PowerShell@2
+    displayName: Apply ${{ parameters.operation }}
+    env:
+      OCP_ALLOW_PVC_OVERRIDE: ${{ parameters.allowDeleteWithPersistentVolumes }}
+    inputs:
+      pwsh: true
+      targetType: filePath
+      filePath: $(Build.SourcesDirectory)/pipelines/scripts/Invoke-OcpPipelineOperation.ps1
+      arguments: >-
+        -Operation ${{ parameters.operation }}
+        -Cluster ${{ parameters.cluster }}
+        -Project "${{ parameters.project }}"
+        -Environment "${{ parameters.environment }}"
+        -Application "${{ parameters.application }}"
+        -Owner "${{ parameters.owner }}"
+        -CostCenter "${{ parameters.costCenter }}"
+        -ChangeReference "${{ parameters.changeReference }}"
+        -ApprovedPlanPath "${{ parameters.artifactRoot }}/plan.json"
+        -OutputRoot "${{ parameters.artifactRoot }}"

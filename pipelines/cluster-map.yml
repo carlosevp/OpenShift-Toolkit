@@ -1,0 +1,37 @@
+# COMPILE-TIME CLUSTER MAP
+# This file exists only because Azure DevOps service connections must be
+# named at compile time. The AUTHORITATIVE catalog is config/clusters.yaml.
+#
+# If you add a cluster:
+#   1. Add it to config/clusters.yaml
+#   2. Add the same friendlyName + serviceConnection values here
+#   3. Update pipelines/templates/authenticate.yml
+#   4. Update Cluster values in pipelines/openshift-ops.yml
+#   5. Run tests/unit/PipelineMapping.Tests.ps1
+#
+# Users never pass service connection names. They select a friendly cluster.
+
+clusters:
+  - friendlyName: Akron-NonProd
+    clusterId: ocp-akron-nonprod
+    serviceConnection: OCP-AKRON-NONPROD
+    destructiveServiceConnection: OCP-AKRON-NONPROD-DESTRUCTIVE
+    classification: nonprod
+
+  - friendlyName: Akron-Prod
+    clusterId: ocp-akron-prod
+    serviceConnection: OCP-AKRON-PROD
+    destructiveServiceConnection: OCP-AKRON-PROD-DESTRUCTIVE
+    classification: production
+
+  - friendlyName: Pitt-Prod
+    clusterId: ocp-pitt-prod
+    serviceConnection: OCP-PITT-PROD
+    destructiveServiceConnection: OCP-PITT-PROD-DESTRUCTIVE
+    classification: production
+
+  - friendlyName: Pitt-DR
+    clusterId: ocp-pitt-dr
+    serviceConnection: OCP-PITT-DR
+    destructiveServiceConnection: OCP-PITT-DR-DESTRUCTIVE
+    classification: production

@@ -1,0 +1,16 @@
+# Global Azure DevOps settings.
+# Per-cluster service connection names live in config/clusters.yaml so the
+# catalog is not duplicated. Pipeline YAML must repeat those names at compile
+# time; tests/unit/PipelineMapping.Tests.ps1 checks that mapping for drift.
+#
+# Environment names must already exist in Azure DevOps with approvals/checks.
+# YAML cannot create those approvals by itself.
+
+azureDevOps:
+  variableGroup: OpenShiftOps
+  tokenVariableName: OCP_TOKEN
+  environments:
+    nonprodMaintenance: openshift-nonprod-maintenance
+    prodMaintenance: openshift-prod-maintenance
+    nonprodDestructive: openshift-destructive
+    prodDestructive: openshift-prod-destructive

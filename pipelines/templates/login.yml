@@ -1,0 +1,42 @@
+parameters:
+  - name: serviceConnection
+    type: string
+    default: UNUSED
+  - name: cluster
+    type: string
+  - name: authenticationMethod
+    type: string
+    default: ServiceConnection
+
+steps:
+  - ${{ if eq(parameters.authenticationMethod, 'ServiceConnection') }}:
+    - task: Kubernetes@1
+      displayName: Authenticate to ${{ parameters.cluster }}
+      inputs:
+        connectionType: Kubernetes Service Connection
+        kubernetesServiceEndpoint: ${{ parameters.serviceConnection }}
+        command: login
+
+  - ${{ if eq(parameters.authenticationMethod, 'Token') }}:
+    - task: PowerShell@2
+      displayName: Token / API token login to ${{ parameters.cluster }}
+      inputs:
+        pwsh: true
+        targetType: inline
+        script: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module "$(Build.SourcesDirectory)/src/OpenShiftOps/OpenShiftOps.psd1" -Force
+          Connect-OcpCluster -Cluster '${{ parameters.cluster }}' -TokenEnvironmentVariable OCP_TOKEN | Out-Null
+          Write-Host "Authenticated to ${{ parameters.cluster }} using TokenEnvironmentVariable OCP_TOKEN."
+
+  - script: |
+      set -euo pipefail
+      if ! command -v oc >/dev/null 2>&1; then
+        echo "##vso[task.logissue type=error]oc CLI is not installed on this agent. Install oc or add an OcInstall task."
+        exit 1
+      fi
+      echo "Using oc: $(command -v oc)"
+      oc version
+      oc whoami
+      oc whoami --show-server
+    displayName: Verify oc identity

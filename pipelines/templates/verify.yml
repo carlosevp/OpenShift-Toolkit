@@ -1,0 +1,44 @@
+parameters:
+  - name: cluster
+    type: string
+  - name: project
+    type: string
+  - name: operation
+    type: string
+  - name: artifactRoot
+    type: string
+
+steps:
+  - task: PowerShell@2
+    displayName: Verify result
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $ErrorActionPreference = 'Stop'
+        Import-Module "$(Build.SourcesDirectory)/src/OpenShiftOps/OpenShiftOps.psd1" -Force
+        $operation = '${{ parameters.operation }}'
+        $project = '${{ parameters.project }}'
+        $cluster = '${{ parameters.cluster }}'
+        if ($operation -eq 'DeleteProject') {
+          try {
+            Get-OcpProjectDetails -Name $project -Cluster $cluster | Out-Null
+            throw "Project '$project' still exists after deletion on $cluster."
+          }
+          catch {
+            if ($_.Exception.Message -match 'was not found') {
+              Write-Host "Verified project '$project' is gone."
+            }
+            else {
+              throw
+            }
+          }
+        }
+        elseif ($operation -eq 'CreateProject') {
+          $created = Get-OcpProject -Name $project -Cluster $cluster
+          if (-not $created) { throw "Project '$project' was not found after create." }
+          Write-Host "Verified project '$project' exists."
+        }
+        else {
+          Write-Host "No extra verify step for $operation."
+        }

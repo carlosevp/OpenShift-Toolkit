@@ -1,0 +1,33 @@
+# Safety policy is validated on first use. Invalid security configuration fails closed.
+# Secret value export is disabled and must remain disabled for normal artifacts.
+
+safety:
+  defaultMaximumBulkMutationCount: 10
+
+  secretExport:
+    enabled: false
+
+  logging:
+    minimumLevel: Information
+    redactSecrets: true
+
+  projectDeletion:
+    requireSafetyExport: true
+    blockProtectedProjects: true
+    blockSystemProjects: true
+    blockWhenPVCsExist: true
+    allowPersistentVolumeOverride: false
+    requireChangeReferenceForProduction: true
+    requireRevalidationAfterApproval: true
+    blockWhenRunningWorkloadsExist: false
+
+  mutations:
+    requireClusterIdentityMatch: true
+    requireChangeReferenceForProduction: false
+
+  backups:
+    defaultProvider: ManifestExport
+    verifyExportBeforeDestructive: true
+
+  recovery:
+    treatManifestsAsRecoveryAids: true

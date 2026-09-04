@@ -1,0 +1,40 @@
+# Baseline objects applied by New-OcpProject when enabled.
+# Tune quotas and limit ranges per environment before production use.
+# These are starting points, not organization-wide capacity policy.
+
+projectBaseline:
+  resourceQuota:
+    enabled: true
+    name: project-quota
+    spec:
+      hard:
+        requests.cpu: "2"
+        requests.memory: 4Gi
+        limits.cpu: "4"
+        limits.memory: 8Gi
+        persistentvolumeclaims: "4"
+        pods: "20"
+        services: "10"
+        secrets: "20"
+        configmaps: "20"
+
+  limitRange:
+    enabled: true
+    name: project-limits
+    spec:
+      limits:
+        - type: Container
+          default:
+            cpu: 200m
+            memory: 256Mi
+          defaultRequest:
+            cpu: 50m
+            memory: 64Mi
+          max:
+            cpu: "2"
+            memory: 2Gi
+
+  rbac:
+    enabled: false
+    # Example only. Do not enable until groups are defined for your directory.
+    roleBindings: []

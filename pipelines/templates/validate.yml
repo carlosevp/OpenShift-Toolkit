@@ -1,0 +1,33 @@
+parameters:
+  - name: cluster
+    type: string
+  - name: operation
+    type: string
+  - name: project
+    type: string
+    default: ''
+
+steps:
+  - task: PowerShell@2
+    displayName: Validate parameters
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $cluster = '${{ parameters.cluster }}'
+        $operation = '${{ parameters.operation }}'
+        $project = '${{ parameters.project }}'
+        $allowedClusters = @('Akron-NonProd', 'Akron-Prod', 'Pitt-Prod', 'Pitt-DR')
+        if ($cluster -notin $allowedClusters) {
+          throw "Cluster '$cluster' is not in the allowlist. Configured aliases only."
+        }
+        $needsProject = @(
+          'ProjectDetails',
+          'RepairProjectMetadata',
+          'CreateProject',
+          'DeleteProject'
+        )
+        if ($operation -in $needsProject -and [string]::IsNullOrWhiteSpace($project)) {
+          throw "Project is required for operation '$operation'."
+        }
+        Write-Host "Validated operation=$operation cluster=$cluster"

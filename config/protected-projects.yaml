@@ -1,0 +1,30 @@
+# Projects that must never be deleted by OpenShiftOps.
+# There is no override for platform/system namespaces in normal toolkit usage.
+#
+# Replace company.com with your label domain (must match project-standards.yaml).
+
+protectedProjects:
+  exact:
+    - default
+    - kube-node-lease
+    - kube-public
+    - kube-system
+    - openshift
+    - openshift-console
+    - openshift-monitoring
+    - openshift-operator-lifecycle-manager
+    - openshift-operators
+
+  prefixes:
+    - openshift-
+    - kube-
+    - redhat-
+
+  labels:
+    company.com/cleanup-protection: "true"
+
+  # Optional additional exact names (company-defined exclusions)
+  additionalExact: []
+
+  # Optional additional prefixes
+  additionalPrefixes: []

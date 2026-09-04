@@ -1,0 +1,58 @@
+# Example ClusterRoles for OpenShiftOps service accounts.
+# Do NOT apply these automatically. Review, split by privilege, and bind to
+# dedicated service accounts used by Azure DevOps service connections.
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: openshiftops-read
+  labels:
+    company.com/managed-by: openshiftops
+rules:
+  - apiGroups: ['', 'project.openshift.io']
+    resources: [namespaces, projects]
+    verbs: [get, list, watch]
+  - apiGroups: ['', apps, batch, networking.k8s.io, route.openshift.io, build.openshift.io, image.openshift.io, rbac.authorization.k8s.io, autoscaling, apps.openshift.io]
+    resources: ['*']
+    verbs: [get, list, watch]
+  - apiGroups: [authorization.k8s.io]
+    resources: [selfsubjectaccessreviews]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: openshiftops-maintenance
+  labels:
+    company.com/managed-by: openshiftops
+rules:
+  - apiGroups: ['', 'project.openshift.io']
+    resources: [namespaces, projects]
+    verbs: [get, list, watch, create, patch, update]
+  - apiGroups: ['']
+    resources: [resourcequotas, limitranges]
+    verbs: [get, list, create, patch, update]
+  - apiGroups: [project.openshift.io]
+    resources: [projectrequests]
+    verbs: [create]
+  - apiGroups: [authorization.k8s.io]
+    resources: [selfsubjectaccessreviews]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: openshiftops-destructive
+  labels:
+    company.com/managed-by: openshiftops
+rules:
+  - apiGroups: ['', 'project.openshift.io']
+    resources: [namespaces, projects]
+    verbs: [get, list, watch, delete]
+  - apiGroups: ['', apps, batch, networking.k8s.io, route.openshift.io, build.openshift.io, image.openshift.io, rbac.authorization.k8s.io, autoscaling, apps.openshift.io]
+    resources: ['*']
+    verbs: [get, list, watch]
+  - apiGroups: [authorization.k8s.io]
+    resources: [selfsubjectaccessreviews]
+    verbs: [create]

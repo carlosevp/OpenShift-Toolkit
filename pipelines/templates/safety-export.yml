@@ -1,0 +1,28 @@
+parameters:
+  - name: cluster
+    type: string
+  - name: project
+    type: string
+  - name: changeReference
+    type: string
+    default: ''
+  - name: artifactRoot
+    type: string
+
+steps:
+  - task: PowerShell@2
+    displayName: Create and verify safety export
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $ErrorActionPreference = 'Stop'
+        Import-Module "$(Build.SourcesDirectory)/src/OpenShiftOps/OpenShiftOps.psd1" -Force
+        $env:OPENSHIFTOPS_ARTIFACT_ROOT = '${{ parameters.artifactRoot }}'
+        $snapshot = Export-OcpProjectSafetySnapshot -Name '${{ parameters.project }}' -Cluster '${{ parameters.cluster }}' -ChangeReference '${{ parameters.changeReference }}' -OutputPath '${{ parameters.artifactRoot }}'
+        $snapshot | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath '${{ parameters.artifactRoot }}/safety-snapshot.json' -Encoding UTF8
+        if ($snapshot.ExportStatus -ne 'Success') {
+          throw 'Safety export failed. Fail closed.'
+        }
+        Write-Host "Safety export verified at $($snapshot.Path)"
+        Write-Host "PVCs: $($snapshot.PersistentVolumeCount). Persistent data is NOT backed up by this export."

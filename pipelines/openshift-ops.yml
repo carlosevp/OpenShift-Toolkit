@@ -1,0 +1,310 @@
+# OpenShiftOps parameterized operations pipeline.
+# Approvals are NOT created by this YAML. Configure Azure DevOps Environments
+# with checks before using maintenance or destructive operations.
+
+name: openshiftops-$(Operation)-$(Cluster)-$(Date:yyyyMMdd)$(Rev:.r)
+
+parameters:
+  - name: Operation
+    displayName: Operation
+    type: string
+    default: ProjectInventory
+    values:
+      - ClusterInfo
+      - ProjectInventory
+      - ProjectDetails
+      - FindUnusedProjects
+      - ValidateProjectStandards
+      - RepairProjectMetadata
+      - CreateProject
+      - DeleteProject
+
+  - name: Cluster
+    displayName: OpenShift Cluster
+    type: string
+    default: Akron-NonProd
+    values:
+      - Akron-NonProd
+      - Akron-Prod
+      - Pitt-Prod
+      - Pitt-DR
+
+  - name: AuthenticationMethod
+    displayName: Authentication method
+    type: string
+    default: ServiceConnection
+    values:
+      - ServiceConnection
+      - Token
+
+  - name: Project
+    displayName: Project / namespace (when required)
+    type: string
+    default: ''
+
+  - name: Environment
+    displayName: Application environment label (create)
+    type: string
+    default: ''
+
+  - name: Application
+    displayName: Application name (create)
+    type: string
+    default: ''
+
+  - name: Owner
+    displayName: Owner (create)
+    type: string
+    default: ''
+
+  - name: CostCenter
+    displayName: Cost center (create)
+    type: string
+    default: ''
+
+  - name: ChangeReference
+    displayName: Change reference (required for production deletion by policy)
+    type: string
+    default: ''
+
+  - name: AllowDeleteWithPersistentVolumes
+    displayName: Explicit PVC deletion override (policy must also allow it)
+    type: boolean
+    default: false
+
+variables:
+  artifactRoot: $(Build.ArtifactStagingDirectory)/openshiftops
+
+stages:
+  - ${{ if in(parameters.Operation, 'ClusterInfo', 'ProjectInventory', 'ProjectDetails', 'FindUnusedProjects', 'ValidateProjectStandards') }}:
+    - stage: Read
+      displayName: Read-only operation
+      jobs:
+        - job: Execute
+          displayName: ${{ parameters.Operation }}
+          pool:
+            vmImage: ubuntu-latest
+          steps:
+            - checkout: self
+            - template: templates/validate.yml
+              parameters:
+                cluster: ${{ parameters.Cluster }}
+                operation: ${{ parameters.Operation }}
+                project: ${{ parameters.Project }}
+            - template: templates/authenticate.yml
+              parameters:
+                cluster: ${{ parameters.Cluster }}
+                privilege: read
+                authenticationMethod: ${{ parameters.AuthenticationMethod }}
+            - template: templates/apply.yml
+              parameters:
+                cluster: ${{ parameters.Cluster }}
+                operation: ${{ parameters.Operation }}
+                project: ${{ parameters.Project }}
+                environment: ${{ parameters.Environment }}
+                application: ${{ parameters.Application }}
+                owner: ${{ parameters.Owner }}
+                costCenter: ${{ parameters.CostCenter }}
+                changeReference: ${{ parameters.ChangeReference }}
+                artifactRoot: $(artifactRoot)
+            - template: templates/publish-results.yml
+              parameters:
+                artifactRoot: $(artifactRoot)
+
+  - ${{ if in(parameters.Operation, 'RepairProjectMetadata', 'CreateProject') }}:
+    - stage: Maintenance
+      displayName: Maintenance operation
+      jobs:
+        - ${{ if in(parameters.Cluster, 'Akron-Prod', 'Pitt-Prod', 'Pitt-DR') }}:
+          - deployment: Execute
+            displayName: ${{ parameters.Operation }} (prod maintenance)
+            environment: openshift-prod-maintenance
+            pool:
+              vmImage: ubuntu-latest
+            strategy:
+              runOnce:
+                deploy:
+                  steps:
+                    - checkout: self
+                    - template: templates/validate.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        operation: ${{ parameters.Operation }}
+                        project: ${{ parameters.Project }}
+                    - template: templates/authenticate.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        privilege: maintenance
+                        authenticationMethod: ${{ parameters.AuthenticationMethod }}
+                    - template: templates/apply.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        operation: ${{ parameters.Operation }}
+                        project: ${{ parameters.Project }}
+                        environment: ${{ parameters.Environment }}
+                        application: ${{ parameters.Application }}
+                        owner: ${{ parameters.Owner }}
+                        costCenter: ${{ parameters.CostCenter }}
+                        changeReference: ${{ parameters.ChangeReference }}
+                        artifactRoot: $(artifactRoot)
+                    - template: templates/verify.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        project: ${{ parameters.Project }}
+                        operation: ${{ parameters.Operation }}
+                        artifactRoot: $(artifactRoot)
+                    - template: templates/publish-results.yml
+                      parameters:
+                        artifactRoot: $(artifactRoot)
+        - ${{ if eq(parameters.Cluster, 'Akron-NonProd') }}:
+          - deployment: Execute
+            displayName: ${{ parameters.Operation }} (nonprod maintenance)
+            environment: openshift-nonprod-maintenance
+            pool:
+              vmImage: ubuntu-latest
+            strategy:
+              runOnce:
+                deploy:
+                  steps:
+                    - checkout: self
+                    - template: templates/validate.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        operation: ${{ parameters.Operation }}
+                        project: ${{ parameters.Project }}
+                    - template: templates/authenticate.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        privilege: maintenance
+                        authenticationMethod: ${{ parameters.AuthenticationMethod }}
+                    - template: templates/apply.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        operation: ${{ parameters.Operation }}
+                        project: ${{ parameters.Project }}
+                        environment: ${{ parameters.Environment }}
+                        application: ${{ parameters.Application }}
+                        owner: ${{ parameters.Owner }}
+                        costCenter: ${{ parameters.CostCenter }}
+                        changeReference: ${{ parameters.ChangeReference }}
+                        artifactRoot: $(artifactRoot)
+                    - template: templates/verify.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        project: ${{ parameters.Project }}
+                        operation: ${{ parameters.Operation }}
+                        artifactRoot: $(artifactRoot)
+                    - template: templates/publish-results.yml
+                      parameters:
+                        artifactRoot: $(artifactRoot)
+
+  - ${{ if eq(parameters.Operation, 'DeleteProject') }}:
+    - stage: Plan
+      displayName: Plan and safety export
+      jobs:
+        - job: PlanDelete
+          displayName: Generate plan and safety export
+          pool:
+            vmImage: ubuntu-latest
+          steps:
+            - checkout: self
+            - template: templates/validate.yml
+              parameters:
+                cluster: ${{ parameters.Cluster }}
+                operation: DeleteProject
+                project: ${{ parameters.Project }}
+            - template: templates/authenticate.yml
+              parameters:
+                cluster: ${{ parameters.Cluster }}
+                privilege: read
+                authenticationMethod: ${{ parameters.AuthenticationMethod }}
+            - template: templates/plan.yml
+              parameters:
+                cluster: ${{ parameters.Cluster }}
+                project: ${{ parameters.Project }}
+                changeReference: ${{ parameters.ChangeReference }}
+                artifactRoot: $(artifactRoot)
+            - template: templates/safety-export.yml
+              parameters:
+                cluster: ${{ parameters.Cluster }}
+                project: ${{ parameters.Project }}
+                changeReference: ${{ parameters.ChangeReference }}
+                artifactRoot: $(artifactRoot)
+            - template: templates/publish-results.yml
+              parameters:
+                artifactRoot: $(artifactRoot)
+
+    - stage: Destroy
+      displayName: Approved destructive apply
+      dependsOn: Plan
+      jobs:
+        - ${{ if in(parameters.Cluster, 'Akron-Prod', 'Pitt-Prod', 'Pitt-DR') }}:
+          - deployment: ApplyDelete
+            displayName: Delete project (prod destructive)
+            environment: openshift-prod-destructive
+            pool:
+              vmImage: ubuntu-latest
+            strategy:
+              runOnce:
+                deploy:
+                  steps:
+                    - checkout: self
+                    - download: current
+                      artifact: openshiftops-results
+                    - template: templates/authenticate.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        privilege: destructive
+                        authenticationMethod: ${{ parameters.AuthenticationMethod }}
+                    - template: templates/apply.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        operation: DeleteProject
+                        project: ${{ parameters.Project }}
+                        changeReference: ${{ parameters.ChangeReference }}
+                        allowDeleteWithPersistentVolumes: ${{ parameters.AllowDeleteWithPersistentVolumes }}
+                        artifactRoot: $(Pipeline.Workspace)/openshiftops-results
+                    - template: templates/verify.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        project: ${{ parameters.Project }}
+                        operation: DeleteProject
+                        artifactRoot: $(Pipeline.Workspace)/openshiftops-results
+                    - template: templates/publish-results.yml
+                      parameters:
+                        artifactRoot: $(Pipeline.Workspace)/openshiftops-results
+        - ${{ if eq(parameters.Cluster, 'Akron-NonProd') }}:
+          - deployment: ApplyDelete
+            displayName: Delete project (nonprod destructive)
+            environment: openshift-destructive
+            pool:
+              vmImage: ubuntu-latest
+            strategy:
+              runOnce:
+                deploy:
+                  steps:
+                    - checkout: self
+                    - download: current
+                      artifact: openshiftops-results
+                    - template: templates/authenticate.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        privilege: destructive
+                        authenticationMethod: ${{ parameters.AuthenticationMethod }}
+                    - template: templates/apply.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        operation: DeleteProject
+                        project: ${{ parameters.Project }}
+                        changeReference: ${{ parameters.ChangeReference }}
+                        allowDeleteWithPersistentVolumes: ${{ parameters.AllowDeleteWithPersistentVolumes }}
+                        artifactRoot: $(Pipeline.Workspace)/openshiftops-results
+                    - template: templates/verify.yml
+                      parameters:
+                        cluster: ${{ parameters.Cluster }}
+                        project: ${{ parameters.Project }}
+                        operation: DeleteProject
+                        artifactRoot: $(Pipeline.Workspace)/openshiftops-results
+                    - template: templates/publish-results.yml
+                      parameters:
+                        artifactRoot: $(Pipeline.Workspace)/openshiftops-results

@@ -1,0 +1,26 @@
+parameters:
+  - name: artifactRoot
+    type: string
+
+steps:
+  - task: PowerShell@2
+    displayName: Sanitize artifact tree
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $root = '${{ parameters.artifactRoot }}'
+        if (-not (Test-Path $root)) { New-Item -ItemType Directory -Path $root -Force | Out-Null }
+        Get-ChildItem -Path $root -Recurse -File | ForEach-Object {
+          $text = Get-Content -LiteralPath $_.FullName -Raw -ErrorAction SilentlyContinue
+          if ($text -match '(?i)"stringData"|client-key-data|bearer\s+[A-Za-z0-9\-._]+') {
+            throw "Refusing to publish artifact that appears to contain secret material: $($_.FullName)"
+          }
+        }
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish non-sensitive OpenShiftOps artifacts
+    inputs:
+      targetPath: ${{ parameters.artifactRoot }}
+      artifact: openshiftops-results
+      publishLocation: pipeline

@@ -1,0 +1,74 @@
+# Authoritative cluster catalog for OpenShiftOps.
+# Do NOT store credentials, tokens, kubeconfig data, or passwords in this file.
+#
+# Each cluster has:
+#   - a canonical ID (the YAML key)
+#   - a friendlyName for operators
+#   - aliases for lookup (case-insensitive)
+#   - the API server URL used for identity verification
+#   - classification, optional location/purpose
+#   - Azure DevOps service connection names (not credentials)
+#
+# Friendly names and aliases NEVER replace server-identity checks.
+# Replace example values with your real clusters before use.
+
+clusters:
+  ocp-akron-nonprod:
+    friendlyName: Akron-NonProd
+    aliases:
+      - akron-nonprod
+      - akr-nonprod
+      - akron-dev
+    server: https://api.ocp-akron-nonprod.example.com:6443
+    classification: nonprod
+    location: Akron
+    purpose: development
+    description: Non-production Akron cluster
+    azureDevOps:
+      serviceConnection: OCP-AKRON-NONPROD
+      destructiveServiceConnection: OCP-AKRON-NONPROD-DESTRUCTIVE
+
+  ocp-akron-prod:
+    friendlyName: Akron-Prod
+    aliases:
+      - akron-prod
+      - akr-prod
+      - akronproduction
+    server: https://api.ocp-akron-prod.example.com:6443
+    classification: production
+    location: Akron
+    purpose: primary
+    description: Production Akron cluster
+    azureDevOps:
+      serviceConnection: OCP-AKRON-PROD
+      destructiveServiceConnection: OCP-AKRON-PROD-DESTRUCTIVE
+
+  ocp-pitt-prod:
+    friendlyName: Pitt-Prod
+    aliases:
+      - pitt-prod
+      - pittsburgh-prod
+      - pit-prod
+    server: https://api.ocp-pitt-prod.example.com:6443
+    classification: production
+    location: Pittsburgh
+    purpose: primary
+    description: Production Pittsburgh cluster
+    azureDevOps:
+      serviceConnection: OCP-PITT-PROD
+      destructiveServiceConnection: OCP-PITT-PROD-DESTRUCTIVE
+
+  ocp-pitt-dr:
+    friendlyName: Pitt-DR
+    aliases:
+      - pitt-dr
+      - pittsburgh-dr
+      - pit-dr
+    server: https://api.ocp-pitt-dr.example.com:6443
+    classification: production
+    location: Pittsburgh
+    purpose: disaster-recovery
+    description: Pittsburgh disaster-recovery cluster
+    azureDevOps:
+      serviceConnection: OCP-PITT-DR
+      destructiveServiceConnection: OCP-PITT-DR-DESTRUCTIVE

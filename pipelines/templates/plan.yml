@@ -1,0 +1,29 @@
+parameters:
+  - name: cluster
+    type: string
+  - name: project
+    type: string
+  - name: changeReference
+    type: string
+    default: ''
+  - name: artifactRoot
+    type: string
+
+steps:
+  - task: PowerShell@2
+    displayName: Generate deletion plan
+    inputs:
+      pwsh: true
+      targetType: inline
+      script: |
+        $ErrorActionPreference = 'Stop'
+        Import-Module "$(Build.SourcesDirectory)/src/OpenShiftOps/OpenShiftOps.psd1" -Force
+        $env:OPENSHIFTOPS_ARTIFACT_ROOT = '${{ parameters.artifactRoot }}'
+        $plan = Get-OcpProjectRemovalPlan -Name '${{ parameters.project }}' -Cluster '${{ parameters.cluster }}' -ChangeReference '${{ parameters.changeReference }}'
+        New-Item -ItemType Directory -Path '${{ parameters.artifactRoot }}' -Force | Out-Null
+        $plan | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath '${{ parameters.artifactRoot }}/plan.json' -Encoding UTF8
+        Set-Content -LiteralPath '${{ parameters.artifactRoot }}/plan.md' -Value $plan.Markdown -Encoding UTF8
+        if (-not $plan.CanProceed) {
+          Write-Host "##vso[task.logissue type=warning]Plan cannot proceed without policy-approved overrides. Blockers were recorded in plan.md."
+        }
+        Write-Host $plan.Markdown

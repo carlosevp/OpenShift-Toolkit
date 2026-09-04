@@ -1,0 +1,82 @@
+# Lifecycle and standards metadata contracts.
+# Keep these concepts portable for a future IDP:
+#   application, owner, team, environment, cost center, lifecycle,
+#   created by, created date, expiration, managed-by, cleanup-protection
+#
+# Replace company.com with your organization's label domain.
+
+standards:
+  labelDomain: company.com
+
+  labels:
+    application:
+      required: true
+      description: Application or service name
+
+    environment:
+      required: true
+      allowedValues:
+        - dev
+        - test
+        - qa
+        - prod
+      aliases:
+        develop: dev
+        development: dev
+        sit: test
+        uat: qa
+        production: prod
+        prd: prod
+
+    owner:
+      required: true
+      description: Owning team or distribution list
+
+    team:
+      required: false
+      description: Optional team identifier when distinct from owner
+
+    cost-center:
+      required: true
+      description: Cost center or billing code
+
+    managed-by:
+      required: true
+      default: openshiftops
+      description: Platform or process that manages this project
+
+    lifecycle:
+      required: false
+      allowedValues:
+        - temporary
+        - permanent
+      default: permanent
+
+    cleanup-protection:
+      required: false
+      allowedValues:
+        - "true"
+        - "false"
+      default: "false"
+
+    created-by:
+      required: false
+      description: Principal that created the project
+
+    created-date:
+      required: false
+      description: RFC3339 UTC date the project was created via this toolkit
+
+    expiration-date:
+      required: false
+      description: Optional RFC3339 UTC expiration for temporary projects
+
+  annotations:
+    description:
+      required: false
+      description: Human-readable project description
+
+  unusedProject:
+    minimumAgeDays: 30
+    highConfidenceAgeDays: 90
+    considerTemporaryLifecycle: true

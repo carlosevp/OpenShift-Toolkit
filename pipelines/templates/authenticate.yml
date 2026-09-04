@@ -1,0 +1,72 @@
+parameters:
+  - name: cluster
+    type: string
+  - name: privilege
+    type: string
+    values:
+      - read
+      - maintenance
+      - destructive
+  - name: authenticationMethod
+    type: string
+    default: ServiceConnection
+    values:
+      - ServiceConnection
+      - Token
+
+steps:
+  - ${{ if eq(parameters.authenticationMethod, 'Token') }}:
+    - template: login.yml
+      parameters:
+        cluster: ${{ parameters.cluster }}
+        authenticationMethod: Token
+        serviceConnection: UNUSED
+
+  - ${{ if eq(parameters.authenticationMethod, 'ServiceConnection') }}:
+    - ${{ if eq(parameters.cluster, 'Akron-NonProd') }}:
+      - ${{ if eq(parameters.privilege, 'destructive') }}:
+        - template: login.yml
+          parameters:
+            cluster: Akron-NonProd
+            serviceConnection: OCP-AKRON-NONPROD-DESTRUCTIVE
+      - ${{ if ne(parameters.privilege, 'destructive') }}:
+        - template: login.yml
+          parameters:
+            cluster: Akron-NonProd
+            serviceConnection: OCP-AKRON-NONPROD
+
+    - ${{ if eq(parameters.cluster, 'Akron-Prod') }}:
+      - ${{ if eq(parameters.privilege, 'destructive') }}:
+        - template: login.yml
+          parameters:
+            cluster: Akron-Prod
+            serviceConnection: OCP-AKRON-PROD-DESTRUCTIVE
+      - ${{ if ne(parameters.privilege, 'destructive') }}:
+        - template: login.yml
+          parameters:
+            cluster: Akron-Prod
+            serviceConnection: OCP-AKRON-PROD
+
+    - ${{ if eq(parameters.cluster, 'Pitt-Prod') }}:
+      - ${{ if eq(parameters.privilege, 'destructive') }}:
+        - template: login.yml
+          parameters:
+            cluster: Pitt-Prod
+            serviceConnection: OCP-PITT-PROD-DESTRUCTIVE
+      - ${{ if ne(parameters.privilege, 'destructive') }}:
+        - template: login.yml
+          parameters:
+            cluster: Pitt-Prod
+            serviceConnection: OCP-PITT-PROD
+
+    - ${{ if eq(parameters.cluster, 'Pitt-DR') }}:
+      - ${{ if eq(parameters.privilege, 'destructive') }}:
+        - template: login.yml
+          parameters:
+            cluster: Pitt-DR
+            serviceConnection: OCP-PITT-DR-DESTRUCTIVE
+      - ${{ if ne(parameters.privilege, 'destructive') }}:
+        - template: login.yml
+          parameters:
+            cluster: Pitt-DR
+            serviceConnection: OCP-PITT-DR
