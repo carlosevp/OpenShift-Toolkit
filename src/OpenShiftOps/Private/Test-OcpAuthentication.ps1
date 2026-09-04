@@ -6,29 +6,40 @@ function Get-OcpVersionInfo {
     [CmdletBinding()]
     param($Json)
 
-    $openshift = [string](Get-OcpProperty -InputObject $Json -Name 'openshiftVersion')
-    if ([string]::IsNullOrWhiteSpace($openshift)) {
-        $serverInfo = Get-OcpProperty -InputObject $Json -Name 'serverInfo'
-        $openshift = [string](Get-OcpProperty -InputObject $serverInfo -Name 'openshiftVersion')
-    }
+    try {
+        $openshift = [string](Get-OcpProperty -InputObject $Json -Name 'openshiftVersion' -Default '')
+        if ([string]::IsNullOrWhiteSpace($openshift)) {
+            $serverInfo = Get-OcpProperty -InputObject $Json -Name 'serverInfo'
+            $openshift = [string](Get-OcpProperty -InputObject $serverInfo -Name 'openshiftVersion' -Default '')
+        }
 
-    $serverVersion = Get-OcpProperty -InputObject $Json -Name 'serverVersion'
-    $kubernetes = [string](Get-OcpProperty -InputObject $serverVersion -Name 'gitVersion')
-    if ([string]::IsNullOrWhiteSpace($kubernetes)) {
-        $kubernetes = [string](Get-OcpProperty -InputObject $Json -Name 'kubernetesVersion')
-    }
+        $serverVersion = Get-OcpProperty -InputObject $Json -Name 'serverVersion'
+        $kubernetes = [string](Get-OcpProperty -InputObject $serverVersion -Name 'gitVersion' -Default '')
+        if ([string]::IsNullOrWhiteSpace($kubernetes)) {
+            $kubernetes = [string](Get-OcpProperty -InputObject $Json -Name 'kubernetesVersion' -Default '')
+        }
 
-    $clientVersion = Get-OcpProperty -InputObject $Json -Name 'clientVersion'
-    $client = [string](Get-OcpProperty -InputObject $clientVersion -Name 'gitVersion')
-    if ([string]::IsNullOrWhiteSpace($client)) {
-        $client = [string](Get-OcpProperty -InputObject $Json -Name 'releaseClientVersion')
-    }
+        $clientVersion = Get-OcpProperty -InputObject $Json -Name 'clientVersion'
+        $client = [string](Get-OcpProperty -InputObject $clientVersion -Name 'gitVersion' -Default '')
+        if ([string]::IsNullOrWhiteSpace($client)) {
+            $client = [string](Get-OcpProperty -InputObject $Json -Name 'releaseClientVersion' -Default '')
+        }
 
-    return [pscustomobject]@{
-        PSTypeName        = 'OpenShiftOps.VersionInfo'
-        OpenShiftVersion  = $openshift
-        KubernetesVersion = $kubernetes
-        ClientVersion     = $client
+        return [pscustomobject]@{
+            PSTypeName        = 'OpenShiftOps.VersionInfo'
+            OpenShiftVersion  = $openshift
+            KubernetesVersion = $kubernetes
+            ClientVersion     = $client
+        }
+    }
+    catch {
+        Write-OcpLog -Level Verbose -Message 'Unable to parse oc version JSON; leaving version fields empty.'
+        return [pscustomobject]@{
+            PSTypeName        = 'OpenShiftOps.VersionInfo'
+            OpenShiftVersion  = ''
+            KubernetesVersion = ''
+            ClientVersion     = ''
+        }
     }
 }
 
@@ -52,11 +63,17 @@ function Test-OcpAuthentication {
         throw [OcpAuthenticationException]::new('oc whoami did not return a username and server.')
     }
 
+    $info = [pscustomobject]@{
+        OpenShiftVersion  = ''
+        KubernetesVersion = ''
+        ClientVersion     = ''
+    }
     $rawVersion = $null
     try {
         $version = Invoke-OcpCli -ArgumentList @('version', '-o', 'json') -Json -AllowNonZeroExit
-        if ($version.Succeeded) {
-            $rawVersion = $version.Json
+        if ((Get-OcpProperty -InputObject $version -Name 'Succeeded' -Default $false) -eq $true) {
+            $rawVersion = Get-OcpProperty -InputObject $version -Name 'Json'
+            $info = Get-OcpVersionInfo -Json $rawVersion
         }
         else {
             Write-OcpLog -Level Verbose -Message 'oc version returned a non-zero exit; continuing with whoami identity only.'
@@ -66,15 +83,13 @@ function Test-OcpAuthentication {
         Write-OcpLog -Level Verbose -Message 'oc version is unavailable; continuing with whoami identity only.'
     }
 
-    $info = Get-OcpVersionInfo -Json $rawVersion
-
     return [pscustomobject]@{
         PSTypeName        = 'OpenShiftOps.Authentication'
         Username          = $username
         Server            = $serverUrl
-        OpenShiftVersion  = $info.OpenShiftVersion
-        KubernetesVersion = $info.KubernetesVersion
-        ClientVersion     = $info.ClientVersion
+        OpenShiftVersion  = [string](Get-OcpProperty -InputObject $info -Name 'OpenShiftVersion' -Default '')
+        KubernetesVersion = [string](Get-OcpProperty -InputObject $info -Name 'KubernetesVersion' -Default '')
+        ClientVersion     = [string](Get-OcpProperty -InputObject $info -Name 'ClientVersion' -Default '')
         Authenticated     = $true
         RawVersion        = $rawVersion
     }

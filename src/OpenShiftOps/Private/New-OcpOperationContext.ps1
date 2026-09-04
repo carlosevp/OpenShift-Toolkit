@@ -69,7 +69,7 @@ function New-OcpOperationContext {
         RegisteredCluster = [bool]$cluster.Registered
         Project          = $Project
         Username         = $auth.Username
-        OpenShiftVersion = $auth.OpenShiftVersion
+        OpenShiftVersion = [string](Get-OcpProperty -InputObject $auth -Name 'OpenShiftVersion' -Default '')
         ExecutionMode    = $executionMode
         RequestedBy      = Get-OcpRequestedBy
         ChangeReference  = $ChangeReference

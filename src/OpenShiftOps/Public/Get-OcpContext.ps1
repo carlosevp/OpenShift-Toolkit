@@ -26,9 +26,9 @@ function Get-OcpContext {
         Server               = $cluster.Server
         Username             = $auth.Username
         AuthenticationMethod = $session.AuthenticationMethod
-        OpenShiftVersion     = $auth.OpenShiftVersion
-        KubernetesVersion    = $auth.KubernetesVersion
-        ClientVersion        = $auth.ClientVersion
+        OpenShiftVersion     = [string](Get-OcpProperty -InputObject $auth -Name 'OpenShiftVersion' -Default '')
+        KubernetesVersion    = [string](Get-OcpProperty -InputObject $auth -Name 'KubernetesVersion' -Default '')
+        ClientVersion        = [string](Get-OcpProperty -InputObject $auth -Name 'ClientVersion' -Default '')
         Classification       = $cluster.Classification
         Location             = $cluster.Location
         Purpose              = $cluster.Purpose

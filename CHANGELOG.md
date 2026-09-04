@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 - 2026-09-04
+
+- StrictMode-safe property reads so missing `openshiftVersion` cannot crash authentication
+
 ## 0.2.1 - 2026-09-04
 
 - `Connect-OcpCluster -Web` for `oc login <server> --web` (interactive browser / OAuth)

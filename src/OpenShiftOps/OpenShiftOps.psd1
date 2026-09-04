@@ -1,6 +1,6 @@
 @{
     RootModule        = 'OpenShiftOps.psm1'
-    ModuleVersion     = '0.2.1'
+    ModuleVersion     = '0.2.2'
     GUID              = '7c2e8a91-4d3f-4b6a-9e1c-2f8a0d6b5c47'
     Author            = 'Platform Operations'
     CompanyName       = 'Internal'

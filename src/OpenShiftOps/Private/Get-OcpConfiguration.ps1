@@ -305,10 +305,12 @@ function Test-OcpHasProperty {
     }
 
     if ($InputObject -is [System.Collections.IDictionary]) {
-        return $InputObject.Contains($Name)
+        return $InputObject.Contains([string]$Name)
     }
 
-    return [bool]$InputObject.PSObject.Properties[$Name]
+    # Never use $object.Name — StrictMode throws on missing JSON fields such as openshiftVersion.
+    $names = @($InputObject.PSObject.Properties.Name)
+    return ($names -contains $Name)
 }
 
 function Get-OcpProperty {
@@ -328,7 +330,11 @@ function Get-OcpProperty {
         return $InputObject[$Name]
     }
 
-    return $InputObject.$Name
+    $property = $InputObject.PSObject.Properties[$Name]
+    if ($null -eq $property) {
+        return $Default
+    }
+    return $property.Value
 }
 
 function Get-OcpResourceLabel {

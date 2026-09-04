@@ -85,6 +85,15 @@ Describe 'Get-OcpVersionInfo' {
             $info.ClientVersion | Should -Be 'v4.17.0'
         }
 
+        It 'reads ConvertFrom-Json output that omits openshiftVersion under StrictMode' {
+            $json = '{"clientVersion":{"gitVersion":"v4.17.0"},"kustomizeVersion":"v5.4.2"}' | ConvertFrom-Json
+            { $null = $json.openshiftVersion } | Should -Throw
+            $info = Get-OcpVersionInfo -Json $json
+            $info.OpenShiftVersion | Should -Be ''
+            $info.ClientVersion | Should -Be 'v4.17.0'
+            Get-OcpProperty -InputObject $json -Name 'openshiftVersion' -Default '' | Should -Be ''
+        }
+
         It 'accepts kubernetesVersion and releaseClientVersion fields' {
             $json = [pscustomobject]@{
                 kubernetesVersion    = 'v1.31.0'

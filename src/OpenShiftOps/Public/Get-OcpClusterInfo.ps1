@@ -82,8 +82,8 @@ function New-OcpClusterInfoRecord {
     }
 
     if ($Authentication) {
-        $record | Add-Member -NotePropertyName OpenShiftVersion -NotePropertyValue $Authentication.OpenShiftVersion
-        $record | Add-Member -NotePropertyName KubernetesVersion -NotePropertyValue $Authentication.KubernetesVersion
+        $record | Add-Member -NotePropertyName OpenShiftVersion -NotePropertyValue ([string](Get-OcpProperty -InputObject $Authentication -Name 'OpenShiftVersion' -Default ''))
+        $record | Add-Member -NotePropertyName KubernetesVersion -NotePropertyValue ([string](Get-OcpProperty -InputObject $Authentication -Name 'KubernetesVersion' -Default ''))
         $record | Add-Member -NotePropertyName Username -NotePropertyValue $Authentication.Username
         $record | Add-Member -NotePropertyName Authenticated -NotePropertyValue $true
         $record | Add-Member -NotePropertyName ExecutionMode -NotePropertyValue (Get-OcpExecutionMode)
